@@ -1,4 +1,6 @@
+
 const User = require('../models/users.model');
+const Location = require('../models/location.model');
 const { colorize } = require('../utils/colors');
 const generateToken = require('../utils/generateToken');
 const bcrypt = require('bcryptjs');
@@ -150,6 +152,7 @@ const loginUser = async (req, res) => {
     });
   }
 };
+
 const logoutUser = async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -178,6 +181,7 @@ const logoutUser = async (req, res) => {
     });
   }
 };
+
 const verifyToken = async (req, res) => {
   try {
     const user = req.user;
@@ -189,7 +193,12 @@ const verifyToken = async (req, res) => {
         message: 'Token không hợp lệ hoặc đã hết hạn'
       });
     }
+    
+    // Lấy thêm thông tin locations mà user đã tạo
+    const locations = await Location.find({ createdBy: user._id }).select('ten nhomSanPham createdAt');
+    
     console.log(colorize.success(`✅ Token hợp lệ cho user: ${user.username} (${user.role})`));
+    
     return res.json({
       success: true,
       message: 'Token hợp lệ',
@@ -197,7 +206,9 @@ const verifyToken = async (req, res) => {
         id: user._id.toString(), 
         username: user.username,
         email: user.email,
-        role: user.role
+        role: user.role,
+        locationsCount: locations.length,
+        locations: locations
       }
     });
     
@@ -210,9 +221,58 @@ const verifyToken = async (req, res) => {
   }
 };
 
+// Lấy thông tin user chi tiết kèm locations
+const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.params.id || req.user._id;
+    
+    const user = await User.findById(userId)
+      .populate({
+        path: 'locations',
+        select: 'ten nhomSanPham diaChi huyen createdAt'
+      })
+      .populate({
+        path: 'updatedLocations',
+        select: 'ten nhomSanPham diaChi huyen updatedAt'
+      });
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy user'
+      });
+    }
+    
+    console.log(colorize.info(`Đã lấy thông tin user: ${user.username}`));
+    
+    res.json({
+      success: true,
+      data: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+        locationsCount: user.locations ? user.locations.length : 0,
+        locations: user.locations || [],
+        updatedLocationsCount: user.updatedLocations ? user.updatedLocations.length : 0,
+        updatedLocations: user.updatedLocations || []
+      }
+    });
+    
+  } catch (error) {
+    console.log(colorize.error(error.message));
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server'
+    });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   logoutUser,
-  verifyToken 
+  verifyToken,
+  getUserProfile
 };

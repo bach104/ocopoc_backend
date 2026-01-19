@@ -52,4 +52,24 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
+// Virtual để lấy tất cả locations mà user đã tạo
+userSchema.virtual('locations', {
+  ref: 'Location',
+  localField: '_id',
+  foreignField: 'createdBy',
+  justOne: false
+});
+
+// Virtual để lấy tất cả locations mà user đã cập nhật
+userSchema.virtual('updatedLocations', {
+  ref: 'Location',
+  localField: '_id',
+  foreignField: 'updatedBy',
+  justOne: false
+});
+
+// Để virtuals hoạt động với toJSON và toObject
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
+
 module.exports = mongoose.model('User', userSchema);

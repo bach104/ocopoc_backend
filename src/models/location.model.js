@@ -62,11 +62,41 @@ const locationSchema = new mongoose.Schema(
     huyen: {
       type: String,
       required: [true, 'Vui lòng nhập huyện/TP']
+    },
+    
+    // LIÊN KẾT VỚI USER
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
     }
   },
   {
     timestamps: true
   }
 );
+
+// Virtual để lấy thông tin user chi tiết
+locationSchema.virtual('creator', {
+  ref: 'User',
+  localField: 'createdBy',
+  foreignField: '_id',
+  justOne: true
+});
+
+locationSchema.virtual('updater', {
+  ref: 'User',
+  localField: 'updatedBy',
+  foreignField: '_id',
+  justOne: true
+});
+
+// Để virtuals hoạt động với toJSON và toObject
+locationSchema.set('toJSON', { virtuals: true });
+locationSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('Location', locationSchema);
